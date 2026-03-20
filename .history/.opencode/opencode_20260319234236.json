@@ -1,0 +1,165 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
+
+  "provider": {
+    "anthropic": {
+      "name": "sss",
+      "options": {
+        "apiKey": "sk-sssaicode-37f5383671bc66f1de70373ae8720b3fe275486861d97e6d1ed67aab1740781e",
+        "baseURL": "https://node-hk.sssaicode.com/api/v1"
+      }
+    },
+    "openai": {
+      "api": "codex",
+      "name": "sss",
+      "options": {
+        "baseURL": "https://node-hk.sssaicode.com/api/v1",
+        "apiKey": "sk-sssaicode-37f5383671bc66f1de70373ae8720b3fe275486861d97e6d1ed67aab1740781e",
+        "setCacheKey": true
+      },
+      "models": {
+        "gpt-5.4": {
+          "name": "GPT-5.4",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.3-codex": {
+          "name": "GPT-5.3 CodeX",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.2-codex": {
+          "name": "GPT-5.2 CodeX",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.2": {
+          "name": "GPT-5.2",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.1": {
+          "name": "GPT-5.1",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.1-codex-mini": {
+          "name": "GPT-5.1-CodeX-Mini",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.1-codex-max": {
+          "name": "GPT-5.1-CodeX-Max",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5-codex": {
+          "name": "GPT-5-CodeX",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.2-codex-max": {
+          "name": "GPT-5.2 CodeX Max",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.3-codex-spark": {
+          "name": "GPT-5.3 CodeX Spark",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.1-codex": {
+          "name": "GPT-5.1-CodeX",
+          "options": {
+            "store": false,
+            "reasoningEffort": "high",
+            "textVerbosity": "medium",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        }
+      }
+    },
+    "google": {
+      "name": "sss",
+      "options": {
+        "baseURL": "https://node-hk.sssaicode.com/api/v1beta",
+        "apiKey": "sss",
+        "headers": {
+          "Authorization": "Bearer sk-sssaicode-37f5383671bc66f1de70373ae8720b3fe275486861d97e6d1ed67aab1740781e"
+        }
+      },
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "name": "Gemini-3.1 Preview"
+        },
+        "gemini-3-flash-preview": {
+          "name": "Gemini-3-Flash-Preview"
+        },
+        "gemini-2.5-flash-lite": {
+          "name": "Gemini-2.5-Flash-Lite"
+        },
+        "gemini-2.5-flash": {
+          "name": "Gemini-2.5-Flash"
+        },
+        "gemini-2.5-pro": {
+          "name": "Gemini-2.5-Pro"
+        },
+        "gemini-3-pro-preview": {
+          "name": "Gemini-3.0 Preview"
+        }
+      }
+    }
+  }
+}
