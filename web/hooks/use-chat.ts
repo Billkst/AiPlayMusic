@@ -16,6 +16,7 @@ const STORAGE_KEYS = {
 export interface UIMessage {
   role: 'user' | 'model'
   text: string
+  apiContent?: string
   options?: string[]
   recommendations?: Array<{ track: Track; reason: string }>
   isError?: boolean
@@ -34,7 +35,7 @@ function getInitialMessages(): UIMessage[] {
 function toApiMessages(messages: UIMessage[]): ChatMessage[] {
   return messages.map(message => ({
     role: message.role === 'model' ? 'assistant' : 'user',
-    content: message.text,
+    content: message.role === 'user' ? (message.apiContent ?? message.text) : message.text,
   }))
 }
 
@@ -98,9 +99,10 @@ export function useChat() {
     return nextMessages
   }, [])
 
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const messageText = text.trim()
+  const sendUserMessage = useCallback(
+    async (message: UIMessage) => {
+      const messageText = message.text.trim()
+      const apiContent = message.apiContent?.trim()
       if (!messageText || isLoading) return
 
       const config = chatConfig ?? readConfigFromStorage()
@@ -108,7 +110,14 @@ export function useChat() {
         return
       }
 
-      const nextMessages: UIMessage[] = [...messages, { role: 'user', text: messageText }]
+      const nextMessages: UIMessage[] = [
+        ...messages,
+        {
+          role: 'user',
+          text: messageText,
+          apiContent: apiContent && apiContent !== messageText ? apiContent : undefined,
+        },
+      ]
       setMessages(nextMessages)
       setIsLoading(true)
 
@@ -144,6 +153,17 @@ export function useChat() {
     [appendModelResponse, chatConfig, isLoading, messages]
   )
 
+  const sendMessage = useCallback(
+    async (text: string) => sendUserMessage({ role: 'user', text }),
+    [sendUserMessage]
+  )
+
+  const sendCardSelection = useCallback(
+    async (displayText: string, contextHint: string) =>
+      sendUserMessage({ role: 'user', text: displayText, apiContent: contextHint }),
+    [sendUserMessage]
+  )
+
   const retryLastMessage = useCallback(async () => {
     if (isLoading) return
 
@@ -156,8 +176,12 @@ export function useChat() {
     const baseMessages = messages.slice(0, actualIndex)
     setMessages(baseMessages)
 
-    await sendMessage(lastUserMessage.text)
-  }, [isLoading, messages, sendMessage])
+    await sendUserMessage({
+      role: 'user',
+      text: lastUserMessage.text,
+      apiContent: lastUserMessage.apiContent,
+    })
+  }, [isLoading, messages, sendUserMessage])
 
   const handleNotMyVibe = useCallback(
     async (rejectedIds: string[]) => {
@@ -218,6 +242,7 @@ export function useChat() {
     isLoading,
     hasApiKey,
     sendMessage,
+    sendCardSelection,
     retryLastMessage,
     handleNotMyVibe,
     resetChat,

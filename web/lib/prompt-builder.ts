@@ -23,14 +23,22 @@ export function buildSystemPrompt(config: PromptConfig): string {
 ${catalogJson}
 
 ## 对话流程
-- 如果用户有明确的歌曲/歌手需求，直接在曲库中匹配，找不到则用高情商话术安抚并推荐风格最接近的替代
-- 如果用户表达模糊（情绪、场景），你可以通过最多 2 轮追问来细化理解
+- 如果用户在第一条消息里已经明确给出歌曲名/歌手名，可跳过追问，直接进入推荐
+- 常规流程必须先进行 2 轮引导（当前第 1-2 轮），每轮都要通过具体场景选项细化需求
 - 当前是第 ${currentTurn + 1} 轮对话`
 
-  if (currentTurn >= 3) {
+  if (currentTurn >= 2) {
     prompt += `\n\n## 重要指令
 当前已经是第 ${currentTurn + 1} 轮对话，你必须立即给出最终的音乐推荐结果，不能再继续追问。
 请在回复中包含 RECOMMENDATIONS 块。`
+  } else {
+    prompt += `\n\n## 重要指令
+当前是第 ${currentTurn + 1} 轮对话，你必须继续引导用户，禁止输出 RECOMMENDATIONS。
+你必须输出 OPTIONS，且提供 3-4 个“具体且有画面感”的场景选项。
+选项要求：
+- 必须是生动、可感知的情绪场景描述（例如："独自开车穿过深夜城市隧道"）
+- 禁止抽象词（例如："放松"、"快乐"、"伤感"）
+- 语气要自然、有共情，帮助用户快速点选`
   }
 
   if (rejectedIds.length > 0) {

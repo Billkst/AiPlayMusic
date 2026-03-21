@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { Loader2, RefreshCw, Send, Settings, Sparkles, X } from 'lucide-react'
 import { MoodCard, MOODS } from '@/components/MoodCard'
+import { OptionCard } from '@/components/OptionCard'
 import { SongCard } from '@/components/SongCard'
 import { ProviderConfigPanel } from '@/components/ProviderConfigPanel'
 import { useChat } from '@/hooks/use-chat'
@@ -27,6 +28,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     isLoading,
     hasApiKey,
     sendMessage,
+    sendCardSelection,
     retryLastMessage,
     handleNotMyVibe,
     resetChat,
@@ -113,7 +115,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
             {messages.map((message, index) => {
               const showMoodCards = message.role === 'model' && isMoodOptionSet(message.options)
-              const showOptionPills = message.role === 'model' && !showMoodCards && (message.options?.length ?? 0) > 0
+              const showOptionCards = message.role === 'model' && !showMoodCards && (message.options?.length ?? 0) > 0
               const showRecommendations = message.role === 'model' && (message.recommendations?.length ?? 0) > 0
 
               return (
@@ -154,24 +156,32 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                           emoji={mood.emoji}
                           title={mood.title}
                           desc={mood.desc}
-                          onClick={() => handleSend(mood.title)}
+                          onClick={() =>
+                            sendCardSelection(
+                              `${mood.emoji} ${mood.title}`,
+                              `用户选择了「${mood.title}」情绪场景（${mood.desc}）。请继续引导用户，通过更具体的场景描述来细化他们的音乐需求。每个选项应该是一个生动的具体场景（如"在雨天的咖啡馆窗边发呆"），而不是抽象的词语。必须输出 OPTIONS。`
+                            )
+                          }
                           disabled={isLoading}
                         />
                       ))}
                     </div>
                   )}
 
-                  {showOptionPills && (
-                    <div className="w-full flex flex-wrap gap-2">
+                  {showOptionCards && (
+                    <div className="w-full flex flex-col gap-2">
                       {message.options?.map(option => (
-                        <button
+                        <OptionCard
                           key={option}
-                          onClick={() => handleSend(option)}
+                          text={option}
+                          onClick={() =>
+                            sendCardSelection(
+                              option,
+                              `用户在引导对话中选择了「${option}」。请根据目前积累的所有信息，继续细化或直接给出推荐。如果这是第3轮对话，必须输出 RECOMMENDATIONS。`
+                            )
+                          }
                           disabled={isLoading}
-                          className="px-3 py-1.5 rounded-full bg-[#242424] border border-[#333] text-xs text-white hover:bg-[#333] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {option}
-                        </button>
+                        />
                       ))}
                     </div>
                   )}

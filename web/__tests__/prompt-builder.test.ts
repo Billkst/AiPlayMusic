@@ -23,8 +23,20 @@ describe('buildSystemPrompt', () => {
   })
 
   it('should include force-recommend instruction at turn 3', () => {
-    const prompt = buildSystemPrompt({ catalogJson: mockCatalog, currentTurn: 3, rejectedIds: [] })
+    const prompt = buildSystemPrompt({ catalogJson: mockCatalog, currentTurn: 2, rejectedIds: [] })
     expect(prompt).toContain('必须')
+    expect(prompt).toContain('RECOMMENDATIONS')
+  })
+
+  it('should forbid recommendations at turn 0', () => {
+    const prompt = buildSystemPrompt({ catalogJson: mockCatalog, currentTurn: 0, rejectedIds: [] })
+    expect(prompt).toContain('禁止')
+    expect(prompt).toContain('RECOMMENDATIONS')
+  })
+
+  it('should forbid recommendations at turn 1', () => {
+    const prompt = buildSystemPrompt({ catalogJson: mockCatalog, currentTurn: 1, rejectedIds: [] })
+    expect(prompt).toContain('禁止')
     expect(prompt).toContain('RECOMMENDATIONS')
   })
 
