@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Sparkles, Bot, User, Loader2, Settings, Key } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import Markdown from 'react-markdown';
 
 interface Message {
@@ -45,18 +45,17 @@ export function AIChatPanel({ onClose }: { onClose: () => void }) {
 
   const initChat = (key: string, model: string) => {
     try {
-      const ai = new GoogleGenAI({ apiKey: key });
-      chatRef.current = ai.chats.create({
+      const genAI = new GoogleGenerativeAI(key);
+      const aiModel = genAI.getGenerativeModel({
         model: model,
-        config: {
-          systemInstruction: `你是一个专业的 Spotify AI 音乐推荐助手。
+        systemInstruction: `你是一个专业的 Spotify AI 音乐推荐助手。
 你的目标是通过对话了解用户的喜好、当前的心情或场景，并为他们推荐合适的音乐。
 请主动引导用户，每次回答后，必须提供 3-4 个简短的选项供用户快速点击选择。
 格式要求：在你的回复的最后一行，必须严格按照以下格式输出选项（必须是合法的 JSON 数组）：
 OPTIONS: ["选项1", "选项2", "选项3"]
 当你收集到足够的信息后，请推荐 3-5 首具体的歌曲（包含歌手名），并简述推荐理由。`
-        }
       });
+      chatRef.current = aiModel.startChat();
     } catch (error) {
       console.error("Failed to initialize chat:", error);
     }
@@ -106,8 +105,10 @@ OPTIONS: ["选项1", "选项2", "选项3"]
     setIsLoading(true);
 
     try {
-      const response = await chatRef.current.sendMessage({ message: text });
-      const { cleanText, options } = extractOptions(response.text);
+      const result = await chatRef.current.sendMessage(text);
+      const response = await result.response;
+      const responseText = response.text();
+      const { cleanText, options } = extractOptions(responseText);
       setMessages([...newMessages, { role: 'model', text: cleanText, options }]);
     } catch (error: any) {
       console.error(error);
