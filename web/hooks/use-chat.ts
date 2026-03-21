@@ -78,11 +78,16 @@ export function useChat() {
       reason: recommendationReasonMap.get(track.id) || '为你挑选的推荐',
     }))
 
+    let text = parsedOptions.cleanText
+    if (!isError && recommendations.length === 0 && content.includes('RECOMMENDATIONS:')) {
+      text += '\n\n*(注：未能成功解析推荐列表，请尝试重新描述或重试)*'
+    }
+
     const nextMessages = [
       ...baseMessages,
       {
         role: 'model' as const,
-        text: parsedOptions.cleanText,
+        text,
         options: parsedOptions.options.length > 0 ? parsedOptions.options : undefined,
         recommendations: recommendations.length > 0 ? recommendations : undefined,
         isError,
@@ -99,7 +104,9 @@ export function useChat() {
       if (!messageText || isLoading) return
 
       const config = chatConfig ?? readConfigFromStorage()
-      if (!config?.apiKey) return
+      if (!config?.apiKey) {
+        return
+      }
 
       const nextMessages: UIMessage[] = [...messages, { role: 'user', text: messageText }]
       setMessages(nextMessages)
@@ -122,19 +129,35 @@ export function useChat() {
         const response = await sendChatMessage(apiMessages, config)
 
         if (response.error) {
-          appendModelResponse(nextMessages, response.error, true)
+          appendModelResponse(nextMessages, `发送失败: ${response.error}`, true)
           return
         }
 
         appendModelResponse(nextMessages, response.content)
-      } catch {
-        appendModelResponse(nextMessages, '抱歉，当前服务暂时不可用，请稍后再试。', true)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '未知错误'
+        appendModelResponse(nextMessages, `抱歉，当前服务暂时不可用 (${errorMessage})，请稍后再试。`, true)
       } finally {
         setIsLoading(false)
       }
     },
     [appendModelResponse, chatConfig, isLoading, messages]
   )
+
+  const retryLastMessage = useCallback(async () => {
+    if (isLoading) return
+
+    const lastUserIndex = [...messages].reverse().findIndex(m => m.role === 'user')
+    if (lastUserIndex === -1) return
+
+    const actualIndex = messages.length - 1 - lastUserIndex
+    const lastUserMessage = messages[actualIndex]
+
+    const baseMessages = messages.slice(0, actualIndex)
+    setMessages(baseMessages)
+
+    await sendMessage(lastUserMessage.text)
+  }, [isLoading, messages, sendMessage])
 
   const handleNotMyVibe = useCallback(
     async (rejectedIds: string[]) => {
@@ -168,13 +191,14 @@ export function useChat() {
         const response = await sendChatMessage(apiMessages, config)
 
         if (response.error) {
-          appendModelResponse(messages, response.error, true)
+          appendModelResponse(messages, `换一批失败: ${response.error}`, true)
           return
         }
 
         appendModelResponse(messages, response.content)
-      } catch {
-        appendModelResponse(messages, '抱歉，换一批时出现了问题，请稍后再试。', true)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '未知错误'
+        appendModelResponse(messages, `抱歉，换一批时出现了问题 (${errorMessage})，请稍后再试。`, true)
       } finally {
         setIsLoading(false)
       }
@@ -194,6 +218,7 @@ export function useChat() {
     isLoading,
     hasApiKey,
     sendMessage,
+    retryLastMessage,
     handleNotMyVibe,
     resetChat,
     refreshConfig,

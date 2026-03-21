@@ -22,7 +22,16 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const [input, setInput] = useState('')
   const [showConfig, setShowConfig] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { messages, isLoading, hasApiKey, sendMessage, handleNotMyVibe, resetChat, refreshConfig } = useChat()
+  const {
+    messages,
+    isLoading,
+    hasApiKey,
+    sendMessage,
+    retryLastMessage,
+    handleNotMyVibe,
+    resetChat,
+    refreshConfig,
+  } = useChat()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -123,6 +132,16 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                     ) : (
                       <div className="prose prose-invert prose-p:my-2 max-w-none text-sm leading-relaxed">
                         <Markdown>{message.text}</Markdown>
+                        {message.isError && (
+                          <button
+                            onClick={() => void retryLastMessage()}
+                            disabled={isLoading}
+                            className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[#ff8a65] hover:text-[#ffab91] transition disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                            <span>重试</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
