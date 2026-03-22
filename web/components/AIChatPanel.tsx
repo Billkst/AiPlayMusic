@@ -64,9 +64,14 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   return (
     <div className="w-[350px] lg:w-[420px] bg-[#121212] rounded-lg flex flex-col overflow-hidden border border-[#282828] shadow-2xl flex-shrink-0 animate-in slide-in-from-right-8 duration-300">
       <div className="p-4 flex items-center justify-between border-b border-[#282828] bg-gradient-to-r from-[#1f1f1f] to-[#121212]">
-        <div className="flex items-center gap-2 text-white font-bold">
-          <Sparkles className="w-5 h-5 text-[#1db954]" />
-          <span>AI 音乐助手</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-white font-bold">
+            <Sparkles className="w-5 h-5 text-[#1db954]" />
+            <span>AI 音乐助手</span>
+          </div>
+          <div className="text-xs text-[#b3b3b3]">
+            {hasApiKey ? '自定义配置模式' : '体验模式 (每日 20 次)'}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -98,15 +103,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       ) : !hasApiKey ? (
         <div className="flex-1 p-5 flex flex-col gap-4">
           <div className="rounded-xl border border-[#333] bg-[#1a1a1a] p-4 space-y-2">
-            <h3 className="text-white font-semibold">先完成 API 配置</h3>
+            <h3 className="text-white font-semibold">🎵 体验模式已启用</h3>
             <p className="text-sm text-[#b3b3b3] leading-relaxed">
-              你还没有配置 API Key。点击右上角设置图标，选择提供商并保存 Key 后即可开始聊天推荐。
+              当前使用服务端 API，每个 IP 每天可免费体验 20 次对话。如需更多次数，可配置自己的 API Key。
             </p>
             <button
               onClick={() => setShowConfig(true)}
               className="mt-2 rounded-full bg-[#1db954] px-4 py-2 text-sm font-bold text-black hover:scale-[1.02] transition"
             >
-              去配置
+              配置自己的 Key
             </button>
           </div>
         </div>

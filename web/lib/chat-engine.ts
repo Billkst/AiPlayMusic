@@ -5,10 +5,38 @@ export interface ChatMessage {
   content: string
 }
 
+async function sendViaServerAPI(
+  messages: ChatMessage[],
+  config: ChatConfig
+): Promise<ChatResponse> {
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages,
+        providerId: config.providerId,
+        model: config.model,
+      }),
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      return { content: '', error: data.error || '服务器错误' }
+    }
+
+    const data = await response.json()
+    return { content: data.content }
+  } catch (error) {
+    return { content: '', error: '网络连接失败，请检查网络状态后重试。' }
+  }
+}
+
 export interface ChatConfig {
   providerId: string
   apiKey: string
   model: string
+  useServerAPI?: boolean
 }
 
 export interface ChatResponse {
@@ -20,6 +48,10 @@ export async function sendChatMessage(
   messages: ChatMessage[],
   config: ChatConfig
 ): Promise<ChatResponse> {
+  if (config.useServerAPI) {
+    return sendViaServerAPI(messages, config)
+  }
+
   const provider = getProviderById(config.providerId)
   if (!provider) {
     return { content: '', error: `未知的 AI 厂商: ${config.providerId}` }

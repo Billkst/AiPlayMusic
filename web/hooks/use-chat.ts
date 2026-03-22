@@ -46,8 +46,9 @@ function readConfigFromStorage(): ChatConfig | null {
   const providerId = localStorage.getItem(STORAGE_KEYS.providerId) || defaultProvider.id
   const apiKey = localStorage.getItem(STORAGE_KEYS.apiKey) || ''
   const model = localStorage.getItem(STORAGE_KEYS.model) || defaultProvider.defaultModels[0]
+  const useServerAPI = !apiKey
 
-  return { providerId, apiKey, model }
+  return { providerId, apiKey, model, useServerAPI }
 }
 
 export function useChat() {
@@ -106,7 +107,7 @@ export function useChat() {
       if (!messageText || isLoading) return
 
       const config = chatConfig ?? readConfigFromStorage()
-      if (!config?.apiKey) {
+      if (!config) {
         return
       }
 
