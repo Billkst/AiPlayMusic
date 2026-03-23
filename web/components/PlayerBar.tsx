@@ -16,17 +16,17 @@ export function PlayerBar() {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (!duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
     const percentage = x / rect.width;
     seek(percentage * duration);
   };
 
-  const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, x / rect.width));
     setVolume(percentage);
   };
@@ -107,6 +107,7 @@ export function PlayerBar() {
           <div 
             className={`flex-1 h-1 bg-[#4d4d4d] rounded-full group cursor-pointer flex items-center ${!currentTrack && "pointer-events-none"}`}
             onClick={handleSeek}
+            onTouchStart={handleSeek}
           >
             <div 
               className="h-full bg-white group-hover:bg-[#1db954] rounded-full relative"
@@ -134,6 +135,7 @@ export function PlayerBar() {
           <div 
             className="flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer flex items-center"
             onClick={handleVolumeChange}
+            onTouchStart={handleVolumeChange}
           >
             <div 
               className="h-full bg-white group-hover:bg-[#1db954] rounded-full relative"
