@@ -13,6 +13,7 @@ interface PlayerState {
   playlist: Track[]
   currentIndex: number
   playMode: PlayMode
+  volume: number
 }
 
 interface PlayerActions {
@@ -24,6 +25,7 @@ interface PlayerActions {
   playPrevious: () => void
   setPlaylist: (tracks: Track[], startIndex?: number) => void
   setPlayMode: (mode: PlayMode) => void
+  setVolume: (volume: number) => void
 }
 
 type PlayerContextType = PlayerState & PlayerActions
@@ -39,21 +41,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [playlist, setPlaylistState] = useState<Track[]>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [playMode, setPlayMode] = useState<PlayMode>('sequence')
+  const [volume, setVolumeState] = useState(1)
   const shuffleHistoryRef = useRef<number[]>([])
 
   useEffect(() => {
     const audio = new Audio()
     audioRef.current = audio
 
+    const savedVolume = typeof window !== 'undefined' ? localStorage.getItem('player_volume') : null
+    const initialVolume = savedVolume ? parseFloat(savedVolume) : 1
+    audio.volume = initialVolume
+    setVolumeState(initialVolume)
+
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime)
     const handleLoadedMetadata = () => setDuration(audio.duration)
     const handleEnded = () => {
-    setIsPlaying(false)
-    const nextIndex = getNextIndex()
-    if (nextIndex !== null && playlist[nextIndex]) {
-      playTrackAtIndex(nextIndex)
+      setIsPlaying(false)
+      const nextIndex = getNextIndex()
+      if (nextIndex !== null && playlist[nextIndex]) {
+        playTrackAtIndex(nextIndex)
+      }
     }
-  }
     const handleError = () => setIsPlaying(false)
 
     audio.addEventListener('timeupdate', handleTimeUpdate)
@@ -215,6 +223,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     shuffleHistoryRef.current = []
   }, [])
 
+  const handleSetVolume = useCallback((vol: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, vol))
+    const audio = audioRef.current
+    if (audio) {
+      audio.volume = clampedVolume
+    }
+    setVolumeState(clampedVolume)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('player_volume', clampedVolume.toString())
+    }
+  }, [])
+
   return (
     <PlayerContext.Provider value={{ 
       currentTrack, 
@@ -224,6 +244,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       playlist,
       currentIndex,
       playMode,
+      volume,
       playTrack, 
       togglePlay, 
       seek, 
@@ -231,7 +252,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       playNext,
       playPrevious,
       setPlaylist,
-      setPlayMode: handleSetPlayMode
+      setPlayMode: handleSetPlayMode,
+      setVolume: handleSetVolume
     }}>
       {children}
     </PlayerContext.Provider>

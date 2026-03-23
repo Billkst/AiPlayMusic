@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePlayer } from "@/hooks/use-player";
 
 export function PlayerBar() {
-  const { currentTrack, isPlaying, currentTime, duration, playMode, togglePlay, seek, playNext, playPrevious, setPlayMode } = usePlayer();
+  const { currentTrack, isPlaying, currentTime, duration, playMode, volume, togglePlay, seek, playNext, playPrevious, setPlayMode, setVolume } = usePlayer();
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
@@ -22,6 +22,13 @@ export function PlayerBar() {
     const x = e.clientX - rect.left;
     const percentage = x / rect.width;
     seek(percentage * duration);
+  };
+
+  const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+    setVolume(percentage);
   };
 
   return (
@@ -118,9 +125,20 @@ export function PlayerBar() {
         <button className="hover:text-white transition"><ListMusic className="w-4 h-4" /></button>
         <button className="hover:text-white transition"><MonitorSpeaker className="w-4 h-4" /></button>
         <div className="flex items-center gap-2 w-24 group">
-          <button className="hover:text-white transition"><Volume2 className="w-4 h-4" /></button>
-          <div className="flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer flex items-center">
-            <div className="h-full bg-white group-hover:bg-[#1db954] w-2/3 rounded-full relative">
+          <button 
+            onClick={() => setVolume(volume > 0 ? 0 : 1)}
+            className="hover:text-white transition"
+          >
+            <Volume2 className="w-4 h-4" />
+          </button>
+          <div 
+            className="flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer flex items-center"
+            onClick={handleVolumeChange}
+          >
+            <div 
+              className="h-full bg-white group-hover:bg-[#1db954] rounded-full relative"
+              style={{ width: `${volume * 100}%` }}
+            >
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow" />
             </div>
           </div>
