@@ -8,6 +8,7 @@ import { OptionCard } from '@/components/OptionCard'
 import { SongCard } from '@/components/SongCard'
 import { ProviderConfigPanel } from '@/components/ProviderConfigPanel'
 import { useChat } from '@/hooks/use-chat'
+import { useTypewriter } from '@/hooks/use-typewriter'
 
 interface AIChatPanelProps {
   onClose: () => void
@@ -34,6 +35,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     resetChat,
     refreshConfig,
   } = useChat()
+
+  const lastModelMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'model') return messages[i]
+    }
+    return null
+  }, [messages])
+
+  const { displayedText } = useTypewriter(lastModelMessage?.text || '', 20)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -138,7 +148,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                       <p>{message.text}</p>
                     ) : (
                       <div className="prose prose-invert prose-p:my-2 max-w-none text-sm leading-relaxed">
-                        <Markdown>{message.text}</Markdown>
+                        <Markdown>{message === lastModelMessage ? displayedText : message.text}</Markdown>
                         {message.isError && (
                           <button
                             onClick={() => void retryLastMessage()}
