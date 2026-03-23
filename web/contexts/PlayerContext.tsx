@@ -3,11 +3,16 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react'
 import type { Track } from '@/lib/catalog'
 
+type PlayMode = 'sequence' | 'loop' | 'shuffle'
+
 interface PlayerState {
   currentTrack: Track | null
   isPlaying: boolean
   currentTime: number
   duration: number
+  playlist: Track[]
+  currentIndex: number
+  playMode: PlayMode
 }
 
 interface PlayerActions {
@@ -15,6 +20,10 @@ interface PlayerActions {
   togglePlay: () => void
   seek: (time: number) => void
   stop: () => void
+  playNext: () => void
+  playPrevious: () => void
+  setPlaylist: (tracks: Track[], startIndex?: number) => void
+  setPlayMode: (mode: PlayMode) => void
 }
 
 type PlayerContextType = PlayerState & PlayerActions
@@ -27,6 +36,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [playlist, setPlaylistState] = useState<Track[]>([])
+  const [currentIndex, setCurrentIndex] = useState(-1)
+  const [playMode, setPlayMode] = useState<PlayMode>('sequence')
+  const shuffleHistoryRef = useRef<number[]>([])
 
   useEffect(() => {
     const audio = new Audio()
@@ -34,7 +47,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime)
     const handleLoadedMetadata = () => setDuration(audio.duration)
-    const handleEnded = () => setIsPlaying(false)
+    const handleEnded = () => {
+    setIsPlaying(false)
+    const nextIndex = getNextIndex()
+    if (nextIndex !== null && playlist[nextIndex]) {
+      playTrackAtIndex(nextIndex)
+    }
+  }
     const handleError = () => setIsPlaying(false)
 
     audio.addEventListener('timeupdate', handleTimeUpdate)
@@ -105,8 +124,115 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setDuration(0)
   }, [])
 
+  const getNextIndex = useCallback((): number | null => {
+    if (playlist.length === 0) return null
+    if (currentIndex === -1) return 0
+
+    if (playMode === 'sequence') {
+      const next = currentIndex + 1
+      return next < playlist.length ? next : null
+    }
+
+    if (playMode === 'loop') {
+      return (currentIndex + 1) % playlist.length
+    }
+
+    if (playMode === 'shuffle') {
+      if (!shuffleHistoryRef.current.includes(currentIndex)) {
+        shuffleHistoryRef.current.push(currentIndex)
+      }
+      
+      if (shuffleHistoryRef.current.length >= playlist.length) {
+        shuffleHistoryRef.current = [currentIndex]
+      }
+      
+      const available = Array.from({ length: playlist.length }, (_, i) => i)
+        .filter(i => !shuffleHistoryRef.current.includes(i))
+      
+      if (available.length === 0) return null
+      
+      return available[Math.floor(Math.random() * available.length)]
+    }
+
+    return null
+  }, [playlist, currentIndex, playMode])
+
+  const getPreviousIndex = useCallback((): number | null => {
+    if (playlist.length === 0) return null
+    if (currentIndex === -1) return null
+
+    if (playMode === 'shuffle') {
+      return currentIndex > 0 ? currentIndex - 1 : null
+    }
+
+    const prev = currentIndex - 1
+    if (prev < 0) {
+      return playMode === 'loop' ? playlist.length - 1 : null
+    }
+    return prev
+  }, [playlist, currentIndex, playMode])
+
+  const playTrackAtIndex = useCallback((index: number) => {
+    const track = playlist[index]
+    if (!track) return
+    
+    const audio = audioRef.current
+    if (!audio) return
+
+    audio.src = track.audioUrl
+    audio.play()
+    setCurrentTrack(track)
+    setCurrentIndex(index)
+    setIsPlaying(true)
+    setCurrentTime(0)
+  }, [playlist])
+
+  const playNext = useCallback(() => {
+    const nextIndex = getNextIndex()
+    if (nextIndex !== null) {
+      playTrackAtIndex(nextIndex)
+    }
+  }, [getNextIndex, playTrackAtIndex])
+
+  const playPrevious = useCallback(() => {
+    const prevIndex = getPreviousIndex()
+    if (prevIndex !== null) {
+      playTrackAtIndex(prevIndex)
+    }
+  }, [getPreviousIndex, playTrackAtIndex])
+
+  const setPlaylist = useCallback((tracks: Track[], startIndex: number = 0) => {
+    setPlaylistState(tracks)
+    setCurrentIndex(startIndex)
+    shuffleHistoryRef.current = []
+    if (tracks[startIndex]) {
+      playTrackAtIndex(startIndex)
+    }
+  }, [playTrackAtIndex])
+
+  const handleSetPlayMode = useCallback((mode: PlayMode) => {
+    setPlayMode(mode)
+    shuffleHistoryRef.current = []
+  }, [])
+
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, currentTime, duration, playTrack, togglePlay, seek, stop }}>
+    <PlayerContext.Provider value={{ 
+      currentTrack, 
+      isPlaying, 
+      currentTime, 
+      duration, 
+      playlist,
+      currentIndex,
+      playMode,
+      playTrack, 
+      togglePlay, 
+      seek, 
+      stop,
+      playNext,
+      playPrevious,
+      setPlaylist,
+      setPlayMode: handleSetPlayMode
+    }}>
       {children}
     </PlayerContext.Provider>
   )

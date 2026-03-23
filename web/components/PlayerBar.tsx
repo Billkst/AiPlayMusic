@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePlayer } from "@/hooks/use-player";
 
 export function PlayerBar() {
-  const { currentTrack, isPlaying, currentTime, duration, togglePlay, seek } = usePlayer();
+  const { currentTrack, isPlaying, currentTime, duration, playMode, togglePlay, seek, playNext, playPrevious, setPlayMode } = usePlayer();
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
@@ -55,10 +55,18 @@ export function PlayerBar() {
       {/* Center: Controls */}
       <div className="flex flex-col items-center justify-center max-w-[722px] w-[40%] gap-2">
         <div className="flex items-center gap-6">
-          <button className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"}`} disabled={!currentTrack}>
+          <button 
+            onClick={() => setPlayMode(playMode === 'sequence' ? 'loop' : playMode === 'loop' ? 'shuffle' : 'sequence')}
+            className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"} ${playMode !== 'sequence' && 'text-[#1db954]'}`} 
+            disabled={!currentTrack}
+          >
             <Shuffle className="w-4 h-4" />
           </button>
-          <button className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"}`} disabled={!currentTrack}>
+          <button 
+            onClick={playPrevious}
+            className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"}`} 
+            disabled={!currentTrack}
+          >
             <SkipBack className="w-5 h-5 fill-current" />
           </button>
           <button 
@@ -72,10 +80,18 @@ export function PlayerBar() {
               <Play className="w-4 h-4 fill-current ml-0.5" />
             )}
           </button>
-          <button className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"}`} disabled={!currentTrack}>
+          <button 
+            onClick={playNext}
+            className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"}`} 
+            disabled={!currentTrack}
+          >
             <SkipForward className="w-5 h-5 fill-current" />
           </button>
-          <button className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"}`} disabled={!currentTrack}>
+          <button 
+            onClick={() => setPlayMode(playMode === 'loop' ? 'sequence' : 'loop')}
+            className={`text-[#b3b3b3] hover:text-white transition ${!currentTrack && "opacity-50 cursor-not-allowed"} ${playMode === 'loop' && 'text-[#1db954]'}`} 
+            disabled={!currentTrack}
+          >
             <Repeat className="w-4 h-4" />
           </button>
         </div>
