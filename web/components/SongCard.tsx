@@ -8,13 +8,23 @@ import type { Track } from '@/lib/catalog'
 interface SongCardProps {
   track: Track
   reason: string
+  allTracks?: Track[]
 }
 
-export function SongCard({ track, reason }: SongCardProps) {
-  const { currentTrack, isPlaying, playTrack } = usePlayer()
+export function SongCard({ track, reason, allTracks }: SongCardProps) {
+  const { currentTrack, isPlaying, playTrack, setPlaylist, playlist } = usePlayer()
   const [hasImageError, setHasImageError] = useState(false)
   const isCurrentTrack = currentTrack?.id === track.id
   const isThisPlaying = isCurrentTrack && isPlaying
+
+  const handlePlay = () => {
+    if (allTracks && allTracks.length > 0) {
+      const trackIndex = allTracks.findIndex(t => t.id === track.id)
+      setPlaylist(allTracks, trackIndex >= 0 ? trackIndex : 0)
+    } else {
+      playTrack(track)
+    }
+  }
 
   useEffect(() => {
     setHasImageError(false)
@@ -45,7 +55,7 @@ export function SongCard({ track, reason }: SongCardProps) {
           <Music className="w-5 h-5 text-white/80" />
         </div>
         <button
-          onClick={() => playTrack(track)}
+          onClick={handlePlay}
           className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <div className="w-10 h-10 rounded-full bg-[#1db954] flex items-center justify-center hover:scale-110 transition-transform">

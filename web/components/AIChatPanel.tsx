@@ -204,7 +204,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                   {showRecommendations && (
                     <div className="w-full flex flex-col gap-2">
                       {message.recommendations?.map(item => (
-                        <SongCard key={item.track.id} track={item.track} reason={item.reason} />
+                        <SongCard 
+                          key={item.track.id} 
+                          track={item.track} 
+                          reason={item.reason}
+                          allTracks={message.recommendations?.map(r => r.track)}
+                        />
                       ))}
                     </div>
                   )}
