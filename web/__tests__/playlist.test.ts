@@ -1,169 +1,193 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import { PlayerProvider, usePlayer } from '../contexts/PlayerContext'
+import type { Track } from '@/lib/catalog'
+import React from 'react'
 
-type PlayMode = 'sequence' | 'loop' | 'shuffle'
-
-interface Track {
-  id: string
-  name: string
+// Mock Audio
+const mockAudio = {
+  play: vi.fn().mockResolvedValue(undefined),
+  pause: vi.fn(),
+  src: '',
+  currentTime: 0,
+  duration: 100,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
 }
 
-class PlaylistManager {
-  private playlist: Track[] = []
-  private currentIndex: number = -1
-  private playMode: PlayMode = 'sequence'
-  private shuffleHistory: number[] = []
+const MockAudio = vi.fn().mockImplementation(function() {
+  return mockAudio
+})
 
-  setPlaylist(tracks: Track[], startIndex: number = 0) {
-    this.playlist = tracks
-    this.currentIndex = startIndex
-    this.shuffleHistory = []
-  }
+vi.stubGlobal('Audio', MockAudio)
 
-  setPlayMode(mode: PlayMode) {
-    this.playMode = mode
-    this.shuffleHistory = []
-  }
+const mockTracks: Track[] = [
+  { id: '1', name: 'Track 1', artist: 'Artist 1', coverUrl: '', audioUrl: 'url1', duration: 100, genreTags: [], moodTags: [], description: '' },
+  { id: '2', name: 'Track 2', artist: 'Artist 2', coverUrl: '', audioUrl: 'url2', duration: 100, genreTags: [], moodTags: [], description: '' },
+  { id: '3', name: 'Track 3', artist: 'Artist 3', coverUrl: '', audioUrl: 'url3', duration: 100, genreTags: [], moodTags: [], description: '' },
+]
 
-  getNextIndex(): number | null {
-    if (this.playlist.length === 0) return null
-    if (this.currentIndex === -1) return 0
-
-    if (this.playMode === 'sequence') {
-      const next = this.currentIndex + 1
-      return next < this.playlist.length ? next : null
-    }
-
-    if (this.playMode === 'loop') {
-      return (this.currentIndex + 1) % this.playlist.length
-    }
-
-    if (this.playMode === 'shuffle') {
-      if (!this.shuffleHistory.includes(this.currentIndex)) {
-        this.shuffleHistory.push(this.currentIndex)
-      }
-      
-      if (this.shuffleHistory.length >= this.playlist.length) {
-        this.shuffleHistory = [this.currentIndex]
-      }
-      
-      const available = Array.from({ length: this.playlist.length }, (_, i) => i)
-        .filter(i => !this.shuffleHistory.includes(i))
-      
-      if (available.length === 0) return null
-      
-      const randomIndex = available[Math.floor(Math.random() * available.length)]
-      return randomIndex
-    }
-
-    return null
-  }
-
-  getPreviousIndex(): number | null {
-    if (this.playlist.length === 0) return null
-    if (this.currentIndex === -1) return null
-
-    if (this.playMode === 'shuffle') {
-      return this.currentIndex > 0 ? this.currentIndex - 1 : null
-    }
-
-    const prev = this.currentIndex - 1
-    if (prev < 0) {
-      return this.playMode === 'loop' ? this.playlist.length - 1 : null
-    }
-    return prev
-  }
-
-  moveToIndex(index: number) {
-    this.currentIndex = index
-  }
-}
-
-describe('PlaylistManager', () => {
-  let manager: PlaylistManager
-  const tracks: Track[] = [
-    { id: '1', name: 'Song 1' },
-    { id: '2', name: 'Song 2' },
-    { id: '3', name: 'Song 3' },
-  ]
-
+describe('Playlist Management', () => {
   beforeEach(() => {
-    manager = new PlaylistManager()
+    vi.clearAllMocks()
+    mockAudio.src = ''
   })
 
-  describe('sequence mode', () => {
-    it('should play next track in order', () => {
-      manager.setPlaylist(tracks, 0)
-      manager.setPlayMode('sequence')
-      
-      expect(manager.getNextIndex()).toBe(1)
-      manager.moveToIndex(1)
-      expect(manager.getNextIndex()).toBe(2)
-      manager.moveToIndex(2)
-      expect(manager.getNextIndex()).toBe(null)
+  it('should initialize with default values', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
     })
 
-    it('should play previous track', () => {
-      manager.setPlaylist(tracks, 2)
-      manager.setPlayMode('sequence')
-      
-      expect(manager.getPreviousIndex()).toBe(1)
-      manager.moveToIndex(1)
-      expect(manager.getPreviousIndex()).toBe(0)
-      manager.moveToIndex(0)
-      expect(manager.getPreviousIndex()).toBe(null)
-    })
+    expect(result.current.playlist).toEqual([])
+    expect(result.current.currentIndex).toBe(-1)
+    expect(result.current.playMode).toBe('sequence')
   })
 
-  describe('loop mode', () => {
-    it('should loop back to first track', () => {
-      manager.setPlaylist(tracks, 2)
-      manager.setPlayMode('loop')
-      
-      expect(manager.getNextIndex()).toBe(0)
+  it('should set playlist and play first track', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
     })
 
-    it('should loop to last track when going previous from first', () => {
-      manager.setPlaylist(tracks, 0)
-      manager.setPlayMode('loop')
-      
-      expect(manager.getPreviousIndex()).toBe(2)
+    act(() => {
+      result.current.setPlaylist(mockTracks)
     })
+
+    expect(result.current.playlist).toEqual(mockTracks)
+    expect(result.current.currentIndex).toBe(0)
+    expect(result.current.currentTrack?.id).toBe('1')
   })
 
-  describe('shuffle mode', () => {
-    it('should not repeat until all tracks played', () => {
-      manager.setPlaylist(tracks, 0)
-      manager.setPlayMode('shuffle')
-      
-      const played = new Set<number>()
-      played.add(0)
-      
-      for (let i = 0; i < tracks.length - 1; i++) {
-        const next = manager.getNextIndex()
-        expect(next).not.toBe(null)
-        expect(played.has(next!)).toBe(false)
-        played.add(next!)
-        manager.moveToIndex(next!)
-      }
-      
-      expect(played.size).toBe(tracks.length)
+  it('should play next track in sequence mode', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
     })
+
+    act(() => {
+      result.current.setPlaylist(mockTracks)
+    })
+
+    act(() => {
+      result.current.playNext()
+    })
+
+    expect(result.current.currentIndex).toBe(1)
+    expect(result.current.currentTrack?.id).toBe('2')
+
+    act(() => {
+      result.current.playNext()
+    })
+
+    expect(result.current.currentIndex).toBe(2)
+    expect(result.current.currentTrack?.id).toBe('3')
+
+    // End of sequence
+    act(() => {
+      result.current.playNext()
+    })
+    expect(result.current.currentIndex).toBe(2) // Should stay at last track
   })
 
-  describe('edge cases', () => {
-    it('should handle empty playlist', () => {
-      manager.setPlaylist([], 0)
-      expect(manager.getNextIndex()).toBe(null)
-      expect(manager.getPreviousIndex()).toBe(null)
+  it('should play previous track in sequence mode', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
     })
 
-    it('should handle single track', () => {
-      manager.setPlaylist([tracks[0]], 0)
-      manager.setPlayMode('sequence')
-      expect(manager.getNextIndex()).toBe(null)
-      
-      manager.setPlayMode('loop')
-      expect(manager.getNextIndex()).toBe(0)
+    act(() => {
+      result.current.setPlaylist(mockTracks, 1)
     })
+
+    act(() => {
+      result.current.playPrevious()
+    })
+
+    expect(result.current.currentIndex).toBe(0)
+    expect(result.current.currentTrack?.id).toBe('1')
+
+    // Start of sequence
+    act(() => {
+      result.current.playPrevious()
+    })
+    expect(result.current.currentIndex).toBe(0)
+  })
+
+  it('should loop playlist in loop mode', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
+    })
+
+    act(() => {
+      result.current.setPlaylist(mockTracks, 2)
+      result.current.setPlayMode('loop')
+    })
+
+    act(() => {
+      result.current.playNext()
+    })
+
+    expect(result.current.currentIndex).toBe(0)
+    expect(result.current.currentTrack?.id).toBe('1')
+
+    act(() => {
+      result.current.playPrevious()
+    })
+
+    expect(result.current.currentIndex).toBe(2)
+    expect(result.current.currentTrack?.id).toBe('3')
+  })
+
+  it('should shuffle playlist in shuffle mode', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
+    })
+
+    act(() => {
+      result.current.setPlaylist(mockTracks)
+      result.current.setPlayMode('shuffle')
+    })
+
+    const firstTrackId = result.current.currentTrack?.id
+    
+    act(() => {
+      result.current.playNext()
+    })
+
+    // In shuffle mode, next track should be one of the other tracks
+    expect(result.current.currentTrack?.id).not.toBe(firstTrackId)
+    expect(mockTracks.map(t => t.id)).toContain(result.current.currentTrack?.id)
+  })
+
+  it('should not repeat tracks in shuffle mode until all played', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
+    })
+
+    act(() => {
+      result.current.setPlaylist(mockTracks)
+      result.current.setPlayMode('shuffle')
+    })
+
+    const playedIds = new Set([result.current.currentTrack?.id])
+
+    for (let i = 0; i < mockTracks.length - 1; i++) {
+      act(() => {
+        result.current.playNext()
+      })
+      playedIds.add(result.current.currentTrack?.id)
+    }
+
+    expect(playedIds.size).toBe(mockTracks.length)
+  })
+
+  it('should handle empty playlist', () => {
+    const { result } = renderHook(() => usePlayer(), {
+      wrapper: PlayerProvider,
+    })
+
+    act(() => {
+      result.current.playNext()
+    })
+
+    expect(result.current.currentIndex).toBe(-1)
+    expect(result.current.currentTrack).toBeNull()
   })
 })

@@ -41,6 +41,11 @@
       "sourceType": "github",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
     },
+    "playwright-dev": {
+      "source": "microsoft/playwright",
+      "sourceType": "github",
+      "computedHash": "92e66d466b7a69087e4946ebab9db9d326adbeba37e4d36dbf87a3f63b60e016"
+    },
     "receiving-code-review": {
       "source": "obra/superpowers",
       "sourceType": "github",

@@ -5,8 +5,17 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>()
 
-const LIMIT = 20
-const WINDOW_MS = 24 * 60 * 60 * 1000
+let LIMIT = 20
+let WINDOW_MS = 24 * 60 * 60 * 1000
+
+export function updateRateLimit(limit: number, windowHours: number = 24) {
+  LIMIT = limit
+  WINDOW_MS = windowHours * 60 * 60 * 1000
+}
+
+export function getRateLimitConfig() {
+  return { limit: LIMIT, windowHours: WINDOW_MS / (60 * 60 * 1000) }
+}
 
 export async function rateLimit(ip: string): Promise<boolean> {
   const now = Date.now()
@@ -34,4 +43,19 @@ export function getRemainingQuota(ip: string): number {
     return LIMIT
   }
   return Math.max(0, LIMIT - entry.count)
+}
+
+export function getUsageStats() {
+  const now = Date.now()
+  let totalUsers = 0
+  let totalRequests = 0
+  
+  store.forEach((entry) => {
+    if (now <= entry.resetAt) {
+      totalUsers++
+      totalRequests += entry.count
+    }
+  })
+  
+  return { totalUsers, totalRequests, limit: LIMIT }
 }

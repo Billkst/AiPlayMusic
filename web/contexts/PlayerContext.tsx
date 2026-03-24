@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react'
 import type { Track } from '@/lib/catalog'
 
-type PlayMode = 'sequence' | 'loop' | 'shuffle'
+export type PlayMode = 'sequence' | 'loop' | 'shuffle'
 
 interface PlayerState {
   currentTrack: Track | null
@@ -40,9 +40,89 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0)
   const [playlist, setPlaylistState] = useState<Track[]>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
-  const [playMode, setPlayMode] = useState<PlayMode>('sequence')
+  const [playMode, setPlayModeState] = useState<PlayMode>('sequence')
+  const [shuffledIndices, setShuffledIndices] = useState<number[]>([])
   const [volume, setVolumeState] = useState(1)
-  const shuffleHistoryRef = useRef<number[]>([])
+
+  const generateShuffledIndices = useCallback((length: number, firstIndex: number) => {
+    const indices = Array.from({ length }, (_, i) => i)
+    const remaining = indices.filter(i => i !== firstIndex)
+    for (let i = remaining.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remaining[i], remaining[j]] = [remaining[j], remaining[i]]
+    }
+    return firstIndex !== -1 ? [firstIndex, ...remaining] : remaining
+  }, [])
+
+  const playTrackAtIndex = useCallback((index: number, tracksOverride?: Track[]) => {
+    const tracks = tracksOverride || playlist
+    const track = tracks[index]
+    if (!track) return
+
+    const audio = audioRef.current
+    if (!audio) return
+
+    audio.src = track.audioUrl
+    audio.play().catch(() => {
+      setIsPlaying(false)
+    })
+    setCurrentTrack(track)
+    setCurrentIndex(index)
+    setIsPlaying(true)
+    setCurrentTime(0)
+  }, [playlist])
+
+  const playNext = useCallback(() => {
+    if (playlist.length === 0) return
+
+    let nextIndex = -1
+    if (playMode === 'shuffle') {
+      const currentShuffledPos = shuffledIndices.indexOf(currentIndex)
+      if (currentShuffledPos !== -1 && currentShuffledPos < shuffledIndices.length - 1) {
+        nextIndex = shuffledIndices[currentShuffledPos + 1]
+      } else {
+        const newShuffled = generateShuffledIndices(playlist.length, -1)
+        setShuffledIndices(newShuffled)
+        nextIndex = newShuffled[0]
+      }
+    } else {
+      const next = currentIndex + 1
+      if (next < playlist.length) {
+        nextIndex = next
+      } else if (playMode === 'loop') {
+        nextIndex = 0
+      }
+    }
+
+    if (nextIndex !== -1) {
+      playTrackAtIndex(nextIndex)
+    }
+  }, [playlist, currentIndex, playMode, shuffledIndices, playTrackAtIndex, generateShuffledIndices])
+
+  const playPrevious = useCallback(() => {
+    if (playlist.length === 0) return
+
+    let prevIndex = -1
+    if (playMode === 'shuffle') {
+      const currentShuffledPos = shuffledIndices.indexOf(currentIndex)
+      if (currentShuffledPos > 0) {
+        prevIndex = shuffledIndices[currentShuffledPos - 1]
+      } else {
+        prevIndex = shuffledIndices[shuffledIndices.length - 1]
+      }
+    } else {
+      const prev = currentIndex - 1
+      if (prev >= 0) {
+        prevIndex = prev
+      } else if (playMode === 'loop') {
+        prevIndex = playlist.length - 1
+      }
+    }
+
+    if (prevIndex !== -1) {
+      playTrackAtIndex(prevIndex)
+    }
+  }, [playlist, currentIndex, playMode, shuffledIndices, playTrackAtIndex])
 
   useEffect(() => {
     const audio = new Audio()
@@ -57,10 +137,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const handleLoadedMetadata = () => setDuration(audio.duration)
     const handleEnded = () => {
       setIsPlaying(false)
-      const nextIndex = getNextIndex()
-      if (nextIndex !== null && playlist[nextIndex]) {
-        playTrackAtIndex(nextIndex)
-      }
+      playNext()
     }
     const handleError = () => setIsPlaying(false)
 
@@ -77,7 +154,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('error', handleError)
     }
-  }, [])
+  }, [playNext])
 
   const playTrack = useCallback((track: Track) => {
     const audio = audioRef.current
@@ -88,18 +165,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.pause()
         setIsPlaying(false)
       } else {
-        audio.play()
+        audio.play().catch(() => setIsPlaying(false))
         setIsPlaying(true)
       }
       return
     }
 
+    const index = playlist.findIndex(t => t.id === track.id)
+    if (index !== -1) {
+      setCurrentIndex(index)
+    }
+
     audio.src = track.audioUrl
-    audio.play()
+    audio.play().catch(() => setIsPlaying(false))
     setCurrentTrack(track)
     setIsPlaying(true)
     setCurrentTime(0)
-  }, [currentTrack, isPlaying])
+  }, [currentTrack, isPlaying, playlist])
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current
@@ -109,7 +191,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.pause()
       setIsPlaying(false)
     } else {
-      audio.play()
+      audio.play().catch(() => setIsPlaying(false))
       setIsPlaying(true)
     }
   }, [currentTrack, isPlaying])
@@ -130,100 +212,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(false)
     setCurrentTime(0)
     setDuration(0)
+    setCurrentIndex(-1)
   }, [])
-
-  const getNextIndex = useCallback((): number | null => {
-    if (playlist.length === 0) return null
-    if (currentIndex === -1) return 0
-
-    if (playMode === 'sequence') {
-      const next = currentIndex + 1
-      return next < playlist.length ? next : null
-    }
-
-    if (playMode === 'loop') {
-      return (currentIndex + 1) % playlist.length
-    }
-
-    if (playMode === 'shuffle') {
-      if (!shuffleHistoryRef.current.includes(currentIndex)) {
-        shuffleHistoryRef.current.push(currentIndex)
-      }
-      
-      if (shuffleHistoryRef.current.length >= playlist.length) {
-        shuffleHistoryRef.current = [currentIndex]
-      }
-      
-      const available = Array.from({ length: playlist.length }, (_, i) => i)
-        .filter(i => !shuffleHistoryRef.current.includes(i))
-      
-      if (available.length === 0) return null
-      
-      return available[Math.floor(Math.random() * available.length)]
-    }
-
-    return null
-  }, [playlist, currentIndex, playMode])
-
-  const getPreviousIndex = useCallback((): number | null => {
-    if (playlist.length === 0) return null
-    if (currentIndex === -1) return null
-
-    if (playMode === 'shuffle') {
-      return currentIndex > 0 ? currentIndex - 1 : null
-    }
-
-    const prev = currentIndex - 1
-    if (prev < 0) {
-      return playMode === 'loop' ? playlist.length - 1 : null
-    }
-    return prev
-  }, [playlist, currentIndex, playMode])
-
-  const playTrackAtIndex = useCallback((index: number) => {
-    const track = playlist[index]
-    if (!track) return
-    
-    const audio = audioRef.current
-    if (!audio) return
-
-    audio.src = track.audioUrl
-    audio.play()
-    setCurrentTrack(track)
-    setCurrentIndex(index)
-    setIsPlaying(true)
-    setCurrentTime(0)
-  }, [playlist])
-
-  const playNext = useCallback(() => {
-    const nextIndex = getNextIndex()
-    if (nextIndex !== null) {
-      playTrackAtIndex(nextIndex)
-    }
-  }, [getNextIndex, playTrackAtIndex])
-
-  const playPrevious = useCallback(() => {
-    const prevIndex = getPreviousIndex()
-    if (prevIndex !== null) {
-      playTrackAtIndex(prevIndex)
-    }
-  }, [getPreviousIndex, playTrackAtIndex])
 
   const setPlaylist = useCallback((tracks: Track[], startIndex: number = 0) => {
     setPlaylistState(tracks)
-    setCurrentIndex(startIndex)
-    shuffleHistoryRef.current = []
-    if (tracks[startIndex]) {
-      playTrackAtIndex(startIndex)
+    if (tracks.length > 0) {
+      const index = Math.max(0, Math.min(startIndex, tracks.length - 1))
+      playTrackAtIndex(index, tracks)
+      if (playMode === 'shuffle') {
+        setShuffledIndices(generateShuffledIndices(tracks.length, index))
+      }
+    } else {
+      stop()
     }
-  }, [playTrackAtIndex])
+  }, [playTrackAtIndex, playMode, generateShuffledIndices, stop])
 
-  const handleSetPlayMode = useCallback((mode: PlayMode) => {
-    setPlayMode(mode)
-    shuffleHistoryRef.current = []
-  }, [])
+  const setPlayMode = useCallback((mode: PlayMode) => {
+    setPlayModeState(mode)
+    if (mode === 'shuffle' && playlist.length > 0) {
+      setShuffledIndices(generateShuffledIndices(playlist.length, currentIndex))
+    }
+  }, [playlist.length, currentIndex, generateShuffledIndices])
 
-  const handleSetVolume = useCallback((vol: number) => {
+  const setVolume = useCallback((vol: number) => {
     const clampedVolume = Math.max(0, Math.min(1, vol))
     const audio = audioRef.current
     if (audio) {
@@ -252,8 +264,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       playNext,
       playPrevious,
       setPlaylist,
-      setPlayMode: handleSetPlayMode,
-      setVolume: handleSetVolume
+      setPlayMode,
+      setVolume
     }}>
       {children}
     </PlayerContext.Provider>

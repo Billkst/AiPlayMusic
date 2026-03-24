@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limiter'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
+}
+
+async function getAdminConfig() {
+  try {
+    const configPath = join(process.cwd(), '.admin-config.json')
+    const data = await readFile(configPath, 'utf-8')
+    return JSON.parse(data)
+  } catch {
+    return null
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -25,14 +37,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的请求参数' }, { status: 400 })
     }
 
-    // 从环境变量读取配置
-    const apiKey = process.env.AI_API_KEY
-    const provider = providerId || process.env.AI_PROVIDER || 'deepseek'
-    const modelName = model || process.env.AI_MODEL || 'deepseek-chat'
+    const adminConfig = await getAdminConfig()
+    const apiKey = adminConfig?.apiKey || process.env.AI_API_KEY
+    const provider = providerId || adminConfig?.provider || process.env.AI_PROVIDER || 'deepseek'
+    const modelName = model || adminConfig?.model || process.env.AI_MODEL || 'deepseek-chat'
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: '服务端未配置 API Key，请使用自定义配置模式' },
+        { error: '服务端未配置 API Key，请访问 /admin 配置' },
         { status: 503 }
       )
     }
