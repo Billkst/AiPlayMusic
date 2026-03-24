@@ -54,6 +54,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return firstIndex !== -1 ? [firstIndex, ...remaining] : remaining
   }, [])
 
+  const getShuffleOrder = useCallback(() => {
+    if (playlist.length === 0) {
+      return []
+    }
+
+    if (shuffledIndices.length === playlist.length && shuffledIndices.includes(currentIndex)) {
+      return shuffledIndices
+    }
+
+    const firstIndex = currentIndex >= 0 ? currentIndex : 0
+    const nextOrder = generateShuffledIndices(playlist.length, firstIndex)
+    setShuffledIndices(nextOrder)
+    return nextOrder
+  }, [playlist.length, shuffledIndices, currentIndex, generateShuffledIndices])
+
   const playTrackAtIndex = useCallback((index: number, tracksOverride?: Track[]) => {
     const tracks = tracksOverride || playlist
     const track = tracks[index]
@@ -77,13 +92,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     let nextIndex = -1
     if (playMode === 'shuffle') {
-      const currentShuffledPos = shuffledIndices.indexOf(currentIndex)
-      if (currentShuffledPos !== -1 && currentShuffledPos < shuffledIndices.length - 1) {
-        nextIndex = shuffledIndices[currentShuffledPos + 1]
+      const shuffleOrder = getShuffleOrder()
+      const currentShuffledPos = shuffleOrder.indexOf(currentIndex)
+      if (currentShuffledPos !== -1 && currentShuffledPos < shuffleOrder.length - 1) {
+        nextIndex = shuffleOrder[currentShuffledPos + 1]
       } else {
-        const newShuffled = generateShuffledIndices(playlist.length, -1)
+        const newShuffled = generateShuffledIndices(playlist.length, currentIndex)
         setShuffledIndices(newShuffled)
-        nextIndex = newShuffled[0]
+        nextIndex = newShuffled.find(index => index !== currentIndex) ?? newShuffled[0]
       }
     } else {
       const next = currentIndex + 1
@@ -97,18 +113,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (nextIndex !== -1) {
       playTrackAtIndex(nextIndex)
     }
-  }, [playlist, currentIndex, playMode, shuffledIndices, playTrackAtIndex, generateShuffledIndices])
+  }, [playlist, currentIndex, playMode, playTrackAtIndex, generateShuffledIndices, getShuffleOrder])
 
   const playPrevious = useCallback(() => {
     if (playlist.length === 0) return
 
     let prevIndex = -1
     if (playMode === 'shuffle') {
-      const currentShuffledPos = shuffledIndices.indexOf(currentIndex)
+      const shuffleOrder = getShuffleOrder()
+      const currentShuffledPos = shuffleOrder.indexOf(currentIndex)
       if (currentShuffledPos > 0) {
-        prevIndex = shuffledIndices[currentShuffledPos - 1]
+        prevIndex = shuffleOrder[currentShuffledPos - 1]
       } else {
-        prevIndex = shuffledIndices[shuffledIndices.length - 1]
+        prevIndex = shuffleOrder[shuffleOrder.length - 1]
       }
     } else {
       const prev = currentIndex - 1
@@ -122,7 +139,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (prevIndex !== -1) {
       playTrackAtIndex(prevIndex)
     }
-  }, [playlist, currentIndex, playMode, shuffledIndices, playTrackAtIndex])
+  }, [playlist, currentIndex, playMode, playTrackAtIndex, getShuffleOrder])
 
   useEffect(() => {
     const audio = new Audio()

@@ -38,3 +38,14 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Tool history
+.history/
+
+# Root-level ad-hoc testing artifacts
+/admin_*.png
+/ai_test_*.png
+/debug_*.png
+/screenshot_*.png
+/test_*.png
+/test_error.png

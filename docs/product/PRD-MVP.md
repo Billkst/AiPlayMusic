@@ -199,4 +199,4 @@ AiPlayMusic 是一个以 AI 对话为核心交互的 Web 音乐播放器 Demo。
 - **音频文件管理**: 免版权音频文件直接放在项目 `public/` 目录下，封面图同理。确保所有素材的版权合规性。
 - **AI Prompt 工程是核心竞争力**: System Prompt 的设计质量直接决定产品体验，需要反复调优。建议将 prompt 模板独立管理，方便迭代。
 - **"零幻觉"是铁律**: 任何绕过曲库 ID 匹配机制的推荐行为都是 Bug，必须在解析层彻底阻断。
-- **项目结构演进方向**: 当前 MVP 全部在 `web/` 目录完成。后续如需 Python Agent 服务，按 `docs/ai_native_music_player_initial.md` 的规划拆分为 `web/` + `agent/` + `infra/`。
+- **项目结构演进方向**: 当前 MVP 全部在 `web/` 目录完成。后续如需 Python Agent 服务，按 `docs/planning/ai_native_music_player_initial.md` 的规划拆分为 `web/` + `agent/` + `infra/`。
