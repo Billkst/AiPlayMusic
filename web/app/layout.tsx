@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { PlayerProvider } from '@/contexts/PlayerContext'
+import { AuthProvider } from '@/contexts/AuthContext'
 import { PostHogProvider } from '@/lib/posthog-provider'
 import { PostHogPageView } from '@/lib/posthog-pageview'
 import { Suspense } from 'react'
@@ -14,12 +15,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body suppressHydrationWarning>
-        <PostHogProvider>
-          <Suspense fallback={null}>
-            <PostHogPageView />
-          </Suspense>
-          <PlayerProvider>{children}</PlayerProvider>
-        </PostHogProvider>
+        <AuthProvider>
+          <PostHogProvider>
+            <Suspense fallback={null}>
+              <PostHogPageView />
+            </Suspense>
+            <PlayerProvider>{children}</PlayerProvider>
+          </PostHogProvider>
+        </AuthProvider>
       </body>
     </html>
   )
