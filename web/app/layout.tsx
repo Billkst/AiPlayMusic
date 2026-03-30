@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { PlayerProvider } from '@/contexts/PlayerContext'
+import { PostHogProvider } from '@/lib/posthog-provider'
+import { PostHogPageView } from '@/lib/posthog-pageview'
+import { Suspense } from 'react'
 
 export const metadata: Metadata = {
   title: 'AiPlayMusic - AI 原生音乐播放器',
@@ -11,7 +14,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body suppressHydrationWarning>
-        <PlayerProvider>{children}</PlayerProvider>
+        <PostHogProvider>
+          <Suspense fallback={null}>
+            <PostHogPageView />
+          </Suspense>
+          <PlayerProvider>{children}</PlayerProvider>
+        </PostHogProvider>
       </body>
     </html>
   )

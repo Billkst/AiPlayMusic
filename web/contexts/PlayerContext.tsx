@@ -77,7 +77,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current
     if (!audio) return
 
-    audio.src = track.audioUrl
+    audio.src = track.audio_url
     audio.play().catch(() => {
       setIsPlaying(false)
     })
@@ -193,7 +193,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentIndex(index)
     }
 
-    audio.src = track.audioUrl
+    audio.src = track.audio_url
     audio.play().catch(() => setIsPlaying(false))
     setCurrentTrack(track)
     setIsPlaying(true)

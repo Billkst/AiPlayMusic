@@ -1,0 +1,7 @@
+{
+  "apiKey": "AIzaSyCfpKjW1g1Nw33O0DSa5I-zYlhv3H1z64M",
+  "provider": "google",
+  "model": "gemini-3.1-pro-preview",
+  "rateLimit": 20,
+  "rateLimitWindow": 24
+}

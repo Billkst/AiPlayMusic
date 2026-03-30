@@ -28,7 +28,7 @@ export function SongCard({ track, reason, allTracks }: SongCardProps) {
 
   useEffect(() => {
     setHasImageError(false)
-  }, [track.id, track.coverUrl])
+  }, [track.id, track.cover_url])
 
   const gradientClass = (() => {
     if (track.id.startsWith('fire')) return 'from-red-600/70 to-orange-500/40'
@@ -45,7 +45,7 @@ export function SongCard({ track, reason, allTracks }: SongCardProps) {
       <div className={`relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-gradient-to-br ${gradientClass}`}>
         {!hasImageError && (
           <img
-            src={track.coverUrl}
+            src={track.cover_url}
             alt={track.name}
             onError={() => setHasImageError(true)}
             className="w-full h-full object-cover"

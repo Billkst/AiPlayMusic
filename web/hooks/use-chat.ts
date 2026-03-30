@@ -65,7 +65,7 @@ export function useChat() {
     refreshConfig()
   }, [refreshConfig])
 
-  const appendModelResponse = useCallback((baseMessages: UIMessage[], content: string, isError = false): UIMessage[] => {
+  const appendModelResponse = useCallback(async (baseMessages: UIMessage[], content: string, isError = false): Promise<UIMessage[]> => {
     const parsedRecommendations = parseRecommendations(content)
     const parsedOptions = parseOptions(parsedRecommendations.cleanText)
 
@@ -73,9 +73,9 @@ export function useChat() {
       parsedRecommendations.recommendations.map(item => [item.id, item.reason])
     )
 
-    const recommendations = getTracksByIds(
+    const recommendations = (await getTracksByIds(
       parsedRecommendations.recommendations.map(item => item.id)
-    ).map(track => ({
+    )).map(track => ({
       track,
       reason: recommendationReasonMap.get(track.id) || '为你挑选的推荐',
     }))
@@ -124,8 +124,9 @@ export function useChat() {
 
       turnControllerRef.current.recordUserTurn()
 
+      const catalogJson = await getCatalogForPrompt()
       const systemPrompt = buildSystemPrompt({
-        catalogJson: getCatalogForPrompt(),
+        catalogJson,
         currentTurn: turnControllerRef.current.currentTurn,
         rejectedIds: turnControllerRef.current.rejectedIds,
       })
@@ -139,14 +140,14 @@ export function useChat() {
         const response = await sendChatMessage(apiMessages, config)
 
         if (response.error) {
-          appendModelResponse(nextMessages, `发送失败: ${response.error}`, true)
+          await appendModelResponse(nextMessages, `发送失败: ${response.error}`, true)
           return
         }
 
-        appendModelResponse(nextMessages, response.content)
+        await appendModelResponse(nextMessages, response.content)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : '未知错误'
-        appendModelResponse(nextMessages, `抱歉，当前服务暂时不可用 (${errorMessage})，请稍后再试。`, true)
+        await appendModelResponse(nextMessages, `抱歉，当前服务暂时不可用 (${errorMessage})，请稍后再试。`, true)
       } finally {
         setIsLoading(false)
       }
@@ -195,8 +196,9 @@ export function useChat() {
       turnControllerRef.current.resetForNewVibe()
       setIsLoading(true)
 
+      const catalogJson = await getCatalogForPrompt()
       const systemPrompt = `${buildSystemPrompt({
-        catalogJson: getCatalogForPrompt(),
+        catalogJson,
         currentTurn: turnControllerRef.current.currentTurn,
         rejectedIds: turnControllerRef.current.rejectedIds,
       })}
@@ -216,14 +218,14 @@ export function useChat() {
         const response = await sendChatMessage(apiMessages, config)
 
         if (response.error) {
-          appendModelResponse(messages, `换一批失败: ${response.error}`, true)
+          await appendModelResponse(messages, `换一批失败: ${response.error}`, true)
           return
         }
 
-        appendModelResponse(messages, response.content)
+        await appendModelResponse(messages, response.content)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : '未知错误'
-        appendModelResponse(messages, `抱歉，换一批时出现了问题 (${errorMessage})，请稍后再试。`, true)
+        await appendModelResponse(messages, `抱歉，换一批时出现了问题 (${errorMessage})，请稍后再试。`, true)
       } finally {
         setIsLoading(false)
       }

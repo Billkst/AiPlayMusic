@@ -22,9 +22,9 @@ const MockAudio = vi.fn().mockImplementation(function() {
 vi.stubGlobal('Audio', MockAudio)
 
 const mockTracks: Track[] = [
-  { id: '1', name: 'Track 1', artist: 'Artist 1', coverUrl: '', audioUrl: 'url1', duration: 100, genreTags: [], moodTags: [], description: '' },
-  { id: '2', name: 'Track 2', artist: 'Artist 2', coverUrl: '', audioUrl: 'url2', duration: 100, genreTags: [], moodTags: [], description: '' },
-  { id: '3', name: 'Track 3', artist: 'Artist 3', coverUrl: '', audioUrl: 'url3', duration: 100, genreTags: [], moodTags: [], description: '' },
+  { id: '1', name: 'Track 1', artist: 'Artist 1', cover_url: '', audio_url: 'url1', duration: 100, genre_tags: [], mood_tags: [], description: '' },
+  { id: '2', name: 'Track 2', artist: 'Artist 2', cover_url: '', audio_url: 'url2', duration: 100, genre_tags: [], mood_tags: [], description: '' },
+  { id: '3', name: 'Track 3', artist: 'Artist 3', cover_url: '', audio_url: 'url3', duration: 100, genre_tags: [], mood_tags: [], description: '' },
 ]
 
 describe('Playlist Management', () => {

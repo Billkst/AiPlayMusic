@@ -1,50 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { rateLimit } from '@/lib/rate-limiter'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
+import { createClient } from '@/lib/supabase/server'
+import { checkGuestQuota, consumeGuestQuota } from '@/lib/guest-session'
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
 }
 
-async function getAdminConfig() {
-  try {
-    const configPath = join(process.cwd(), '.admin-config.json')
-    const data = await readFile(configPath, 'utf-8')
-    return JSON.parse(data)
-  } catch {
-    return null
-  }
-}
-
 export async function POST(request: NextRequest) {
-  // 限流检查
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-  const allowed = await rateLimit(ip)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!allowed) {
-    return NextResponse.json(
-      { error: '今日体验次数已用完，请明天再来或使用自己的 API Key' },
-      { status: 429 }
-    )
+  if (!user) {
+    const hasQuota = await checkGuestQuota()
+    if (!hasQuota) {
+      return NextResponse.json(
+        { error: '今日体验次数已用完，请登录继续使用' },
+        { status: 429 }
+      )
+    }
   }
 
   try {
-    const { messages, providerId, model } = await request.json()
+    const { messages, providerId, model, sessionId } = await request.json()
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: '无效的请求参数' }, { status: 400 })
     }
 
-    const adminConfig = await getAdminConfig()
-    const apiKey = adminConfig?.apiKey || process.env.AI_API_KEY
-    const provider = providerId || adminConfig?.provider || process.env.AI_PROVIDER || 'deepseek'
-    const modelName = model || adminConfig?.model || process.env.AI_MODEL || 'deepseek-chat'
+    const apiKey = process.env.AI_API_KEY
+    const provider = providerId || process.env.AI_PROVIDER || 'deepseek'
+    const modelName = model || process.env.AI_MODEL || 'deepseek-chat'
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: '服务端未配置 API Key，请访问 /admin 配置' },
+        { error: '服务端未配置 API Key' },
         { status: 503 }
       )
     }
@@ -101,6 +91,10 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json()
     const content = data.choices?.[0]?.message?.content || ''
+
+    if (!user) {
+      await consumeGuestQuota()
+    }
 
     return NextResponse.json({ content })
 

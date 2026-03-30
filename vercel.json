@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/.next",
+  "installCommand": "cd web && npm install",
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/ingest/:path*",
+      "destination": "https://us.i.posthog.com/:path*"
+    }
+  ]
+}

@@ -37,7 +37,7 @@ export function PlayerBar() {
       <div className="flex items-center gap-4 w-[30%] min-w-[180px]">
         <div className="w-14 h-14 rounded-md overflow-hidden relative flex-shrink-0 group cursor-pointer bg-[#282828]">
           {currentTrack ? (
-            <img src={currentTrack.coverUrl} alt={currentTrack.name} className="w-full h-full object-cover" />
+            <img src={currentTrack.cover_url} alt={currentTrack.name} className="w-full h-full object-cover" />
           ) : null}
         </div>
         <div className="flex flex-col justify-center overflow-hidden">
