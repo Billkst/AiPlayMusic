@@ -1,4 +1,5 @@
 import { Home, Search, Bell, Users, Sparkles } from "lucide-react";
+import { UserMenu } from "./UserMenu";
 
 export function TopBar({ onOpenChat }: { onOpenChat?: () => void }) {
   return (
@@ -46,9 +47,7 @@ export function TopBar({ onOpenChat }: { onOpenChat?: () => void }) {
         <button className="w-8 h-8 rounded-full flex items-center justify-center text-[#b3b3b3] hover:text-white hover:scale-105 transition">
           <Bell className="w-4 h-4" />
         </button>
-        <button className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-500 text-white hover:scale-105 transition text-xs font-bold">
-          AI
-        </button>
+        <UserMenu />
       </div>
     </div>
   );
