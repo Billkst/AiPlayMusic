@@ -6,6 +6,7 @@ import { sendChatMessage, type ChatConfig, type ChatMessage } from '@/lib/chat-e
 import { TurnController } from '@/lib/turn-controller'
 import { AI_PROVIDERS } from '@/lib/providers'
 import { MOODS } from '@/components/MoodCard'
+import { useAuth } from '@/contexts/AuthContext'
 
 const STORAGE_KEYS = {
   providerId: 'ai_provider_id',
@@ -56,6 +57,25 @@ export function useChat() {
   const [messages, setMessages] = useState<UIMessage[]>(getInitialMessages)
   const [isLoading, setIsLoading] = useState(false)
   const [chatConfig, setChatConfig] = useState<ChatConfig | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const { user } = useAuth()
+
+  const createSession = async (title: string) => {
+    const response = await fetch('/api/chat/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    })
+    return response.json()
+  }
+
+  const saveMessages = async (sessionId: string, messages: Array<{ role: string; content: string }>) => {
+    await fetch(`/api/chat/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+    })
+  }
 
   const refreshConfig = useCallback(() => {
     setChatConfig(readConfigFromStorage())
@@ -96,9 +116,33 @@ export function useChat() {
       },
     ]
 
+    if (user && !isError && content) {
+      try {
+        if (!sessionId) {
+          const firstUserMsg = baseMessages.find(m => m.role === 'user')?.text || '新对话'
+          const session = await createSession(firstUserMsg.slice(0, 50))
+          setSessionId(session.id)
+          
+          const allMessages = nextMessages.map(m => ({
+            role: m.role === 'model' ? 'assistant' : 'user',
+            content: m.text,
+          }))
+          await saveMessages(session.id, allMessages)
+        } else {
+          const lastUserMsg = baseMessages[baseMessages.length - 1]
+          await saveMessages(sessionId, [
+            { role: 'user', content: lastUserMsg.text },
+            { role: 'assistant', content: text },
+          ])
+        }
+      } catch (error) {
+        console.error('保存消息失败:', error)
+      }
+    }
+
     setMessages(nextMessages)
     return nextMessages
-  }, [])
+  }, [user, sessionId, createSession, saveMessages])
 
   const sendUserMessage = useCallback(
     async (message: UIMessage) => {
