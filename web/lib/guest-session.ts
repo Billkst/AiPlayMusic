@@ -19,19 +19,28 @@ export async function getOrCreateGuestSession() {
     })
   }
   
-  const { data: session } = await supabase
+  // 关键修复：确保查询获取到所有列，包含新添加的 quota 列
+  let { data: session } = await supabase
     .from('anonymous_sessions')
-    .select('*')
+    .select('id, session_token, guest_quota_used, guest_quota_limit')
     .eq('session_token', token)
     .single()
   
   if (!session) {
-    const { data: newSession } = await supabase
+    const { data: newSession, error } = await supabase
       .from('anonymous_sessions')
-      .insert({ session_token: token })
-      .select()
+      .insert({ 
+        session_token: token,
+        guest_quota_used: 0,
+        guest_quota_limit: 20
+      })
+      .select('id, session_token, guest_quota_used, guest_quota_limit')
       .single()
     
+    if (error) {
+      console.error('创建游客会话失败:', error)
+      return null
+    }
     return newSession
   }
   
@@ -42,11 +51,12 @@ export async function checkGuestQuota() {
   const session = await getOrCreateGuestSession()
   console.log('Guest session quota check:', {
     id: session?.id,
-    used: session?.guest_quota_used,
-    limit: session?.guest_quota_limit
+    used: session?.guest_quota_used ?? 0,
+    limit: session?.guest_quota_limit ?? 20
   })
-  if (!session) return false
-  return (session.guest_quota_used || 0) < (session.guest_quota_limit || 20)
+  if (!session) return false 
+  // 确保使用默认值进行比较
+  return (session.guest_quota_used ?? 0) < (session.guest_quota_limit ?? 20)
 }
 
 export async function consumeGuestQuota() {
