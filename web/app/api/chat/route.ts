@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       zhipu: 'https://open.bigmodel.cn/api/paas',
       qwen: 'https://dashscope.aliyuncs.com/compatible-mode',
       gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
+      google: 'https://generativelanguage.googleapis.com/v1beta/openai',
     }
 
     const baseUrl = baseUrls[provider] || baseUrls.deepseek
