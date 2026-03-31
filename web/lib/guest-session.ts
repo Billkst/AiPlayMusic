@@ -40,7 +40,12 @@ export async function getOrCreateGuestSession() {
 
 export async function checkGuestQuota() {
   const session = await getOrCreateGuestSession()
-  if (!session) return false // 防御性检查
+  console.log('Guest session quota check:', {
+    id: session?.id,
+    used: session?.guest_quota_used,
+    limit: session?.guest_quota_limit
+  })
+  if (!session) return false
   return (session.guest_quota_used || 0) < (session.guest_quota_limit || 20)
 }
 
