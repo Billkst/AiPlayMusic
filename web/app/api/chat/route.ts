@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.AI_API_KEY
-    const provider = providerId || process.env.AI_PROVIDER || 'deepseek'
+    const provider = (providerId || process.env.AI_PROVIDER || 'deepseek').toLowerCase()
     const modelName = model || process.env.AI_MODEL || 'deepseek-chat'
 
     if (!apiKey) {
