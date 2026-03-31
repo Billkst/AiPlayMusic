@@ -110,23 +110,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
       {showConfig ? (
         <ProviderConfigPanel onClose={() => setShowConfig(false)} onSave={handleConfigSaved} />
-      ) : !hasApiKey ? (
-        <div className="flex-1 p-5 flex flex-col gap-4">
-          <div className="rounded-xl border border-[#333] bg-[#1a1a1a] p-4 space-y-2">
-            <h3 className="text-white font-semibold">🎵 体验模式已启用</h3>
-            <p className="text-sm text-[#b3b3b3] leading-relaxed">
-              当前使用服务端 API，每个 IP 每天可免费体验 20 次对话。如需更多次数，可配置自己的 API Key。
-            </p>
-            <button
-              onClick={() => setShowConfig(true)}
-              className="mt-2 rounded-full bg-[#1db954] px-4 py-2 text-sm font-bold text-black hover:scale-[1.02] transition"
-            >
-              配置自己的 Key
-            </button>
-          </div>
-        </div>
       ) : (
         <>
+          {/* 体验模式提示 - 无论是否配置 Key，都渲染聊天界面 */}
+          {!hasApiKey && (
+             <div className="p-3 bg-[#1a1a1a] border-b border-[#333] text-xs text-[#b3b3b3]">
+               体验模式：每日 20 次对话。
+               <button onClick={() => setShowConfig(true)} className="text-[#1db954] ml-2 font-bold">配置 Key</button>
+             </div>
+          )}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
             {messages.map((message, index) => {
               const showMoodCards = message.role === 'model' && isMoodOptionSet(message.options)
