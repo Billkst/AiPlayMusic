@@ -72,7 +72,7 @@ export function MainContent() {
               <a href="#" className="hover:text-white">关于广告</a>
               <a href="#" className="hover:text-white">无障碍</a>
             </div>
-            <span>© 2026 Spotify AB</span>
+            <span>© 2026 AiPlayMusic</span>
           </div>
         </div>
       </div>
