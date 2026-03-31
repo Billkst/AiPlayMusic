@@ -116,31 +116,34 @@ export function useChat() {
       },
     ]
 
+    setMessages(nextMessages)
+
     if (user && !isError && content) {
-      try {
-        if (!sessionId) {
-          const firstUserMsg = baseMessages.find(m => m.role === 'user')?.text || '新对话'
-          const session = await createSession(firstUserMsg.slice(0, 50))
-          setSessionId(session.id)
-          
-          const allMessages = nextMessages.map(m => ({
-            role: m.role === 'model' ? 'assistant' : 'user',
-            content: m.text,
-          }))
-          await saveMessages(session.id, allMessages)
-        } else {
-          const lastUserMsg = baseMessages[baseMessages.length - 1]
-          await saveMessages(sessionId, [
-            { role: 'user', content: lastUserMsg.text },
-            { role: 'assistant', content: text },
-          ])
+      Promise.resolve().then(async () => {
+        try {
+          if (!sessionId) {
+            const firstUserMsg = baseMessages.find(m => m.role === 'user')?.text || '新对话'
+            const session = await createSession(firstUserMsg.slice(0, 50))
+            setSessionId(session.id)
+            
+            const allMessages = nextMessages.map(m => ({
+              role: m.role === 'model' ? 'assistant' : 'user',
+              content: m.text,
+            }))
+            await saveMessages(session.id, allMessages)
+          } else {
+            const lastUserMsg = baseMessages[baseMessages.length - 1]
+            await saveMessages(sessionId, [
+              { role: 'user', content: lastUserMsg.text },
+              { role: 'assistant', content: text },
+            ])
+          }
+        } catch (error) {
+          console.error('保存消息失败:', error)
         }
-      } catch (error) {
-        console.error('保存消息失败:', error)
-      }
+      })
     }
 
-    setMessages(nextMessages)
     return nextMessages
   }, [user, sessionId, createSession, saveMessages])
 
