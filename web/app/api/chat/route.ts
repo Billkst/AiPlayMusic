@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
   
   if (!user) {
     const hasQuota = await checkGuestQuota()
+    console.log('API Quota check result for guest:', hasQuota) // 关键调试日志
     if (!hasQuota) {
       return NextResponse.json(
         { error: '今日体验次数已用完，请登录继续使用' },
