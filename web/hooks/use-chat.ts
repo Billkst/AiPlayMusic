@@ -237,6 +237,7 @@ export function useChat() {
       if (isLoading || rejectedIds.length === 0) return
 
       const config = chatConfig ?? readConfigFromStorage()
+      if (!config) return
 
       turnControllerRef.current.addRejectedIds(rejectedIds)
       turnControllerRef.current.resetForNewVibe()
