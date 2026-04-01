@@ -64,11 +64,16 @@ export async function consumeGuestQuota() {
   if (!session) return
   const supabase = await createClient()
   
-  await supabase
+  const { error } = await supabase
     .from('anonymous_sessions')
     .update({ 
-      guest_quota_used: (session.guest_quota_used || 0) + 1,
-      updated_at: new Date().toISOString()
+      guest_quota_used: (session.guest_quota_used || 0) + 1
     })
     .eq('id', session.id)
+  
+  if (error) {
+    console.error('消费配额失败:', error)
+  } else {
+    console.log('配额已消费:', (session.guest_quota_used || 0) + 1)
+  }
 }

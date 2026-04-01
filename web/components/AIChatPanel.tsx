@@ -10,6 +10,11 @@ import { ProviderConfigPanel } from '@/components/ProviderConfigPanel'
 import { useChat } from '@/hooks/use-chat'
 import { useTypewriter } from '@/hooks/use-typewriter'
 
+interface GuestQuota {
+  used: number
+  limit: number
+}
+
 interface AIChatPanelProps {
   onClose: () => void
 }
@@ -23,6 +28,7 @@ function isMoodOptionSet(options: string[] | undefined): boolean {
 export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const [input, setInput] = useState('')
   const [showConfig, setShowConfig] = useState(false)
+  const [guestQuota, setGuestQuota] = useState<GuestQuota | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const {
     messages,
@@ -48,6 +54,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading, showConfig])
+
+  useEffect(() => {
+    if (!hasApiKey) {
+      fetch('/api/guest-quota')
+        .then(res => res.json())
+        .then(data => setGuestQuota(data))
+        .catch(() => setGuestQuota(null))
+    }
+  }, [hasApiKey, messages, isLoading])
 
   const latestRecommendations = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index--) {
@@ -80,7 +95,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             <span>AI 音乐助手</span>
           </div>
           <div className="text-xs text-[#b3b3b3]">
-            {hasApiKey ? '自定义配置模式' : '体验模式 (每日 20 次)'}
+            {hasApiKey ? '自定义配置模式' : guestQuota ? `体验模式 (${guestQuota.used}/${guestQuota.limit} 次)` : '体验模式 (每日 20 次)'}
           </div>
         </div>
         <div className="flex items-center gap-1">

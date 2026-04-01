@@ -15,7 +15,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [stats, setStats] = useState({ totalUsers: 0, totalRequests: 0, limit: 20 })
+  const [stats, setStats] = useState<any>({ totalUsers: 0, totalRequests: 0, limit: 20, guest: null })
   const [activeTab, setActiveTab] = useState('config')
 
   const handleLogin = async () => {
@@ -167,31 +167,68 @@ export default function AdminPage() {
         </div>
 
         {activeTab === 'stats' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-2">
-                <Users className="w-6 h-6 text-purple-400" />
-                <h3 className="text-white/80 text-sm font-medium">今日访客</h3>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <Users className="w-6 h-6 text-purple-400" />
+                  <h3 className="text-white/80 text-sm font-medium">今日访客</h3>
+                </div>
+                <p className="text-4xl font-bold text-white">{stats.totalUsers}</p>
               </div>
-              <p className="text-4xl font-bold text-white">{stats.totalUsers}</p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-2">
-                <Activity className="w-6 h-6 text-blue-400" />
-                <h3 className="text-white/80 text-sm font-medium">今日请求</h3>
+              
+              <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <Activity className="w-6 h-6 text-blue-400" />
+                  <h3 className="text-white/80 text-sm font-medium">今日请求</h3>
+                </div>
+                <p className="text-4xl font-bold text-white">{stats.totalRequests}</p>
               </div>
-              <p className="text-4xl font-bold text-white">{stats.totalRequests}</p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-2">
-                <Settings className="w-6 h-6 text-green-400" />
-                <h3 className="text-white/80 text-sm font-medium">每日限额</h3>
+              
+              <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <Settings className="w-6 h-6 text-green-400" />
+                  <h3 className="text-white/80 text-sm font-medium">每日限额</h3>
+                </div>
+                <p className="text-4xl font-bold text-white">{stats.limit}</p>
               </div>
-              <p className="text-4xl font-bold text-white">{stats.limit}</p>
             </div>
-          </div>
+
+            {stats.guest && (
+              <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-xl rounded-3xl p-6 border border-purple-500/20">
+                <h3 className="text-xl font-bold text-white mb-4">游客会话统计</h3>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <p className="text-white/60 text-sm mb-1">总会话数</p>
+                    <p className="text-2xl font-bold text-white">{stats.guest.totalSessions}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm mb-1">活跃会话</p>
+                    <p className="text-2xl font-bold text-white">{stats.guest.activeSessions}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm mb-1">总使用次数</p>
+                    <p className="text-2xl font-bold text-white">{stats.guest.totalUsage}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <p className="text-white/80 text-sm font-semibold mb-2">最近会话</p>
+                  {stats.guest.recentSessions?.map((session: any) => (
+                    <div key={session.id} className="bg-white/5 rounded-lg p-3 text-sm">
+                      <div className="flex justify-between text-white/60">
+                        <span>会话 ID: {session.id.slice(0, 8)}...</span>
+                        <span>{session.guest_quota_used}/{session.guest_quota_limit} 次</span>
+                      </div>
+                      <div className="text-white/40 text-xs mt-1">
+                        最后活跃: {new Date(session.updated_at).toLocaleString('zh-CN')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === 'config' && (

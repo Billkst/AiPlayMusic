@@ -23,15 +23,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { messages, providerId, model, sessionId } = await request.json()
+    const { messages, sessionId } = await request.json()
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: '无效的请求参数' }, { status: 400 })
     }
 
     const apiKey = process.env.AI_API_KEY
-    const provider = (providerId || process.env.AI_PROVIDER || 'deepseek').toLowerCase()
-    const modelName = model || process.env.AI_MODEL || 'deepseek-chat'
+    const provider = (process.env.AI_PROVIDER || 'deepseek').toLowerCase()
+    const modelName = process.env.AI_MODEL || 'deepseek-chat'
+
+    console.log('[DEBUG] API Config:', { provider, modelName, hasApiKey: !!apiKey })
 
     if (!apiKey) {
       return NextResponse.json(
@@ -40,22 +42,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 获取 baseUrl
     const baseUrls: Record<string, string> = {
-      deepseek: 'https://api.deepseek.com',
-      openai: 'https://api.openai.com',
-      moonshot: 'https://api.moonshot.cn',
-      zhipu: 'https://open.bigmodel.cn/api/paas',
-      qwen: 'https://dashscope.aliyuncs.com/compatible-mode',
-      gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
-      google: 'https://generativelanguage.googleapis.com/v1beta/openai',
+      deepseek: 'https://api.deepseek.com/v1/chat/completions',
+      openai: 'https://api.openai.com/v1/chat/completions',
+      moonshot: 'https://api.moonshot.cn/v1/chat/completions',
+      zhipu: 'https://open.bigmodel.cn/api/paas/v1/chat/completions',
+      qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      gemini: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      google: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
     }
 
-    const baseUrl = baseUrls[provider] || baseUrls.deepseek
-    const url = `${baseUrl}/v1/chat/completions`
+    const url = baseUrls[provider] || baseUrls.deepseek
+
+    console.log('[DEBUG] Request URL:', url)
+    console.log('[DEBUG] Request body:', JSON.stringify({ model: modelName, messages, temperature: 0.8, max_tokens: 2048 }))
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
+    const timeoutId = setTimeout(() => controller.abort(), 60000)
 
     const response = await fetch(url, {
       method: 'POST',
@@ -74,9 +77,11 @@ export async function POST(request: NextRequest) {
 
     clearTimeout(timeoutId)
 
+    console.log('[DEBUG] Response status:', response.status)
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('AI API Error:', response.status, errorText)
+      console.error('[DEBUG] AI API Error:', response.status, errorText)
       
       if (response.status === 401 || response.status === 403) {
         return NextResponse.json(
@@ -94,6 +99,8 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     const content = data.choices?.[0]?.message?.content || ''
 
+    console.log('[DEBUG] AI Response content:', content)
+
     if (!user) {
       await consumeGuestQuota()
     }
@@ -105,8 +112,15 @@ export async function POST(request: NextRequest) {
     
     if (error.name === 'AbortError') {
       return NextResponse.json(
-        { error: 'AI 响应超时，请稍后重试' },
+        { error: 'AI 响应超时（60秒），请重试或简化问题' },
         { status: 504 }
+      )
+    }
+
+    if (error.code === 'UND_ERR_SOCKET' || error.cause?.code === 'UND_ERR_SOCKET') {
+      return NextResponse.json(
+        { error: 'AI 服务连接中断，请重试' },
+        { status: 502 }
       )
     }
 

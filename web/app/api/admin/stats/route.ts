@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsageStats, getRateLimitConfig } from '@/lib/rate-limiter'
+import { createClient } from '@/lib/supabase/server'
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
@@ -17,5 +18,18 @@ export async function GET(request: NextRequest) {
   const stats = getUsageStats()
   const config = getRateLimitConfig()
   
-  return NextResponse.json({ ...stats, ...config })
+  const supabase = await createClient()
+  const { data: sessions } = await supabase
+    .from('anonymous_sessions')
+    .select('id, guest_quota_used, guest_quota_limit, created_at, updated_at')
+    .order('updated_at', { ascending: false })
+  
+  const guestStats = {
+    totalSessions: sessions?.length || 0,
+    totalUsage: sessions?.reduce((sum, s) => sum + (s.guest_quota_used || 0), 0) || 0,
+    activeSessions: sessions?.filter(s => (s.guest_quota_used || 0) > 0).length || 0,
+    recentSessions: sessions?.slice(0, 20) || [],
+  }
+  
+  return NextResponse.json({ ...stats, ...config, guest: guestStats })
 }
